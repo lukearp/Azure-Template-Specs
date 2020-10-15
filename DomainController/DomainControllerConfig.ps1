@@ -5,7 +5,7 @@ configuration DomainControllerConfig
         [Parameter(mandatory = $true)]
         [string]$username,
         [Parameter(Mandatory = $true)]
-        [securestring]$password,
+        [string]$password,
         [Parameter(mandatory = $true)]
         [string]$domain,
         [Parameter(mandatory = $false)]
@@ -13,8 +13,6 @@ configuration DomainControllerConfig
     )
     
     Import-DscResource -ModuleName PsDesiredStateConfiguration
-    $BSTR = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($password)
-    $unsecurePassword = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($BSTR)
     node localhost
     {
         WindowsFeature ADDSInstall {
@@ -43,7 +41,7 @@ configuration DomainControllerConfig
             }
             SetScript  = {
                 
-                $securepassword = ConvertTo-SecureString -String $using:unsecurePassword -AsPlainText -Force
+                $securepassword = ConvertTo-SecureString -String $using:password -AsPlainText -Force
                 $domainCredential = New-Object System.Management.Automation.PSCredential ($using:username, $securepassword)
                 New-Item -Path "F:\NTDS" -ItemType Directory;
                 New-Item -Path "F:\SYSVOL" -ItemType Directory;    
@@ -56,4 +54,3 @@ configuration DomainControllerConfig
         } 
     }
 }
-DomainControllerConfig

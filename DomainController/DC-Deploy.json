@@ -56,7 +56,7 @@
         },
         "artifactsLocation": {
             "type": "string",
-            "defaultValue": "https://azurefoundations.blob.core.windows.net/public/DC-DSC.zip"
+            "defaultValue": "https://github.com/lukearp/Azure-Template-Specs/releases/download/Testing/DomainControllerConfig.zip"                             
         },
         "domain": {
             "type": "string"
@@ -66,6 +66,10 @@
         },
         "domainpassword": {
             "type": "securestring"
+        },
+        "site": {
+            "type": "string",
+            "defaultValue": "Default-First-Site-Name"
         }
     },
     "variables": {
@@ -146,7 +150,6 @@
                                 "caching": "[parameters('dataDisks')[copyIndex('dataDisks')].caching]",
                                 "diskSizeGB": "[parameters('dataDisks')[copyIndex('dataDisks')].diskSizeGB]",
                                 "managedDisk": {
-                                    "id": "[coalesce(parameters('dataDisks')[copyIndex('dataDisks')].id, if(equals(parameters('dataDisks')[copyIndex('dataDisks')].name, json('null')), json('null'), resourceId('Microsoft.Compute/disks', parameters('dataDisks')[copyIndex('dataDisks')].name)))]",
                                     "storageAccountType": "[parameters('dataDisks')[copyIndex('dataDisks')].storageAccountType]"
                                 },
                                 "writeAcceleratorEnabled": "[parameters('dataDisks')[copyIndex('dataDisks')].writeAcceleratorEnabled]"
@@ -192,11 +195,12 @@
                 "autoUpgradeMinorVersion": true,
                 "settings": {
                     "modulesUrl": "[parameters('artifactsLocation')]",
-                    "configurationFunction": "DC-DSC.ps1\\DomainControllerConfig",
+                    "configurationFunction": "DomainControllerConfig.ps1\\DomainControllerConfig",
                     "properties": {
                         "username": "[parameters('domainusername')]",
                         "password": "[parameters('domainpassword')]",
-                        "domain": "[parameters('domain')]"
+                        "domain": "[parameters('domain')]",
+                        "site": "[parameters('site')]"
                     }
                 }
             },
