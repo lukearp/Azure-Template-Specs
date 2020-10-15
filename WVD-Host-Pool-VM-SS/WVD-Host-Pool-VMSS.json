@@ -1,0 +1,319 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "scaleSetNamePrefix": {
+            "type": "string",
+            "metadata": {
+                "description": "Name of VM Scaleset"
+            }
+        },
+        "count": {
+            "type": "int",
+            "metadata": {
+                "description": "Number of VMs to be deployed"
+            }
+        },
+        "publisher": {
+            "type": "string",
+            "defaultValue": "MicrosoftWindowsDesktop",
+            "metadata": {
+                "description": "VM Offer Publisher"
+            }
+        },
+        "offer": {
+            "type": "string",
+            "defaultValue": "office-365",
+            "metadata": {
+                "description": "VM Image Offer"
+            }
+        },
+        "sku": {
+            "type": "string",
+            "defaultValue": "20h1-evd-o365pp",
+            "metadata": {
+                "description": "VM Image Sku"
+            }
+        },
+        "adminusername": {
+            "type": "string",
+            "metadata": {
+                "description": "Default local admin username"
+            }
+        },
+        "adminpassword": {
+            "type": "securestring",
+            "metadata": {
+                "description": "Default Local admin password"
+            }
+        },
+        "lbName": {
+            "type": "string",
+            "metadata": {
+                "description": "Name of standard LB"
+            }
+        },
+        "privateLbIp": {
+            "type": "string",
+            "metadata": {
+                "description": "Private IP of the Azure LB used for Rolling Updates"
+            }
+        },
+        "subnetId": {
+            "type": "string",
+            "metadata": {
+                "description": "Azure Subnet resource ID"
+            }
+        },
+        "domainJoinUsername": {
+            "type": "string",
+            "metadata": {
+                "description": "AD Account that has Create/Delete computer object permissions in the target OU"
+            }
+        },
+        "domainJoinPassword": {
+            "type": "securestring",
+            "metadata": {
+                "description": "Password for Domain Join account"
+            }
+        },
+        "domainSuffix": {
+            "type": "string",
+            "metadata": {
+                "description": "Domain Suffix, Ex: domain.local"
+            }
+        },
+        "ouPath": {
+            "type": "string",
+            "metadata": {
+                "description": "Active Directory OU Distinguished Name"
+            }
+        },
+        "artifactsLocation": {
+            //"defaultValue": "https://wvdportalstorageblob.blob.core.windows.net/galleryartifacts/Configuration.zip",
+            "defaultValue": "https://github.com/lukearp/WindowsVirtualDesktop/releases/download/beta/Configuration+FSLogix.zip",
+            "type": "String",
+            "metadata": {
+                "description": "The base URI where artifacts required by this template are located."
+            }
+        },
+        "hostpoolToken": {
+            "type": "String",
+            "defaultValue": "eyJhbGciOiJSUzI1NiIsImtpZCI6IjVGRjc0N0JFODhCREFCMjQ0ODU1NkFGQjQwRTk3MkUyQUVGNjM2ODciLCJ0eXAiOiJKV1QifQ.eyJSZWdpc3RyYXRpb25JZCI6Ijk4MmFjNTY4LWRkODYtNDYxMi04OWVlLTY0ZWNhOThiNjcyMyIsIkJyb2tlclVyaSI6Imh0dHBzOi8vcmRicm9rZXItZy11cy1yMC53dmQubWljcm9zb2Z0LmNvbS8iLCJEaWFnbm9zdGljc1VyaSI6Imh0dHBzOi8vcmRkaWFnbm9zdGljcy1nLXVzLXIwLnd2ZC5taWNyb3NvZnQuY29tLyIsIkVuZHBvaW50UG9vbElkIjoiMzM0YjkzMWQtNWNiZC00M2RlLWFhN2YtMTcwMjM3N2QxZjhmIiwiR2xvYmFsQnJva2VyVXJpIjoiaHR0cHM6Ly9yZGJyb2tlci53dmQubWljcm9zb2Z0LmNvbS8iLCJHZW9ncmFwaHkiOiJVUyIsIm5iZiI6MTYwMjI1NzAzNSwiZXhwIjoxNjAyMzQzNDI0LCJpc3MiOiJSREluZnJhVG9rZW5NYW5hZ2VyIiwiYXVkIjoiUkRtaSJ9.dx0m6enaq81t0cyYbaQ_2U8uGhbTm5CQvfMN9AuNWI8d_wrWKOk4px7fgLxFz3rEAFAVYDzaMZ_rV5eqL9OcCfuC2LmHtyIOz3gBtNQ8S3GKdBVXWV3G0bzE6g5KdBp-DN5k_HUCs6XYbmyowRtXQ2qGYZpWJV8-x998O7V-BnC8PdQgWIqN4-kQ7dlTk0pDpFSMe9-L0gnfeb27zHeiHfekUKcWvEvYqsQfoDNprr0YwSpetCsp77iRGe1U3tLiRDwPYTb0D2ormPmGihw82M3WidaC0nR0tXzTcX98cFnMyruTRZpxv3jC2mgOo4OOwGR11rWmnvDn2CCnJXU_GQ",
+            "metadata": {
+                "description": "The token for adding VMs to the hostpool"
+            }
+        },
+        "hostpoolName": {
+            "type": "String",
+            "defaultValue": "VM-SS",
+            "metadata": {
+                "description": "The name of the hostpool"
+            }
+        },
+        "fslogixUncPath": {
+            "type": "String",
+            "metadata": {
+                "description": "UNC Path for SMB share for Profile VHDs. Ex: \\\\server\\share"
+            }
+        }
+    },
+    "variables": {},
+    "resources": [
+        {
+            "type": "Microsoft.Network/loadBalancers",
+            "name": "[parameters('lbName')]",
+            "location": "[resourceGroup().location]",
+            "apiVersion": "2020-05-01",
+            "sku": {
+                "name": "Standard"
+            },
+            "dependsOn": [
+            ],
+            "properties": {
+                "frontendIPConfigurations": [
+                    {
+                        "name": "default",
+                        "properties": {
+                            "privateIPAllocationMethod": "Static",
+                            "privateIPAddress": "[parameters('privateLbIp')]",
+                            "privateIPAddressVersion": "IPv4",
+                            "subnet": {
+                                "id": "[parameters('subnetId')]"
+                            }
+                        }
+                    }
+                ],
+                "backendAddressPools": [
+                    {
+                        "name": "[concat(parameters('scaleSetNamePrefix'),'-bepool')]"
+                    }
+                ],
+                "loadBalancingRules": [
+                    {
+                        "name": "DefaultRDP",
+                        "properties": {
+                            "loadDistribution": "Default",
+                            "frontendIPConfiguration": {
+                                "id": "[concat(resourceGroup().id,'/providers/Microsoft.Network/loadBalancers/',parameters('lbName'),'/frontendIPConfigurations/default')]"
+                            },
+                            "backendAddressPool": {
+                                "id": "[concat(resourceGroup().id,'/providers/Microsoft.Network/loadBalancers/',parameters('lbName'),'/backendAddressPools/',concat(parameters('scaleSetNamePrefix'),'-bepool'))]"
+                            },
+                            "protocol": "Tcp",
+                            "frontendPort": 3389,
+                            "backendPort": 3389,
+                            "enableFloatingIP": false,
+                            "idleTimeoutInMinutes": 5,
+                            "probe": {
+                                "id": "[concat(resourceGroup().id,'/providers/Microsoft.Network/loadBalancers/',parameters('lbName'),'/probes/default')]"
+                            }
+                        }
+                    }
+                ],
+                "probes": [
+                    {
+                        "name": "default",
+                        "properties": {
+                            "protocol": "Tcp",
+                            "port": 3389,
+                            "intervalInSeconds": 5,
+                            "numberOfProbes": 2
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            "type": "Microsoft.Compute/virtualMachineScaleSets",
+            "apiVersion": "2020-06-01",
+            "name": "[parameters('scaleSetNamePrefix')]",
+            "location": "[resourceGroup().location]",
+            "zones": [
+                "1",
+                "2",
+                "3"
+            ],
+            "dependsOn": [
+            ],
+            "sku": {
+                "name": "Standard_D2s_v3",
+                "tier": "Standard",
+                "capacity": "[parameters('count')]"
+            },
+            "properties": {
+                "singlePlacementGroup": true,
+                "zoneBalance": true,
+                "upgradePolicy": {
+                    "mode": "Rolling",
+                    "automaticOSUpgradePolicy": {
+                        "enableAutomaticOSUpgrade": false
+                    },
+                    "rollingUpgradePolicy": {
+                        "maxBatchInstancePercent": 20,
+                        "maxUnhealthyInstancePercent": 25,
+                        "maxUnhealthyUpgradedInstancePercent": 10,
+                        "pauseTimeBetweenBatches": "PT0S"
+                    }
+                },
+                "overprovision": "true",
+                "virtualMachineProfile": {
+                    "diagnosticsProfile": {
+                        "bootDiagnostics": {
+                            "enabled": true
+                        }
+                    },
+                    "storageProfile": {
+                        "osDisk": {
+                            "caching": "ReadOnly",
+                            "createOption": "FromImage"
+                        },
+                        "imageReference": {
+                            "publisher": "[parameters('publisher')]",
+                            "offer": "[parameters('offer')]",
+                            "sku": "[parameters('sku')]",
+                            "version": "latest"
+                        }
+                    },
+                    "osProfile": {
+                        "computerNamePrefix": "[parameters('scaleSetNamePrefix')]",
+                        "adminUsername": "[parameters('adminUsername')]",
+                        "adminPassword": "[parameters('adminPassword')]"
+                    },
+                    "networkProfile": {
+                        "healthProbe": {
+                            "id": "[concat(resourceGroup().id,'/providers/Microsoft.Network/loadBalancers/',parameters('lbName'),'/probes/default')]"
+                        },
+                        "networkInterfaceConfigurations": [
+                            {
+                                "name": "[concat('nic', parameters('scaleSetNamePrefix'))]",
+                                "properties": {
+                                    "primary": "true",
+                                    "ipConfigurations": [
+                                        {
+                                            "name": "[concat('ipconfig', parameters('scaleSetNamePrefix'))]",
+                                            "properties": {
+                                                "subnet": {
+                                                    "Id": "[parameters('subnetId')]"
+                                                },
+                                                "loadBalancerBackendAddressPools": [
+                                                    {
+                                                        "id": "[concat(resourceGroup().id,'/providers/Microsoft.Network/loadBalancers/',parameters('lbName'),'/backendAddressPools/',concat(parameters('scaleSetNamePrefix'),'-bepool'))]"
+                                                    }
+                                                ]
+                                            }
+                                        }
+                                    ]
+                                }
+                            }
+                        ]
+                    },
+                    "extensionProfile": {
+                        "extensions": [
+                            {
+                                "name": "joindomain",
+                                "properties": {
+                                    "publisher": "Microsoft.Compute",
+                                    "type": "JsonADDomainExtension",
+                                    "typeHandlerVersion": "1.3",
+                                    "settings": {
+                                        "Name": "[parameters('domainSuffix')]",
+                                        "OUPath": "[parameters('ouPath')]",
+                                        "User": "[parameters('domainJoinUsername')]",
+                                        "Restart": "true",
+                                        "Options": "3"
+                                    },
+                                    "protectedsettings": {
+                                        "Password": "[parameters('domainJoinPassword')]"
+                                    }
+                                }
+                            },
+                            {
+                                "name": "hostpoolRegistration",
+                                "properties": {
+                                    "provisionAfterExtensions": [
+                                        "joindomain"
+                                    ],
+                                    "publisher": "Microsoft.Powershell",
+                                    "type": "DSC",
+                                    "typeHandlerVersion": "2.73",
+                                    "autoUpgradeMinorVersion": true,
+                                    "settings": {
+                                        "modulesUrl": "[parameters('artifactsLocation')]",
+                                        "configurationFunction": "Configuration.ps1\\AddSessionHost",
+                                        "properties": {
+                                            "hostPoolName": "[parameters('hostpoolName')]",
+                                            "registrationInfoToken": "[parameters('hostpoolToken')]",
+                                            "uncPath": "[parameters('fslogixUncPath')]"
+                                        }
+                                    }
+                                }
+                            }
+                        ]
+                    }
+                }
+            }
+        }
+    ],
+    "outputs": {}
+}

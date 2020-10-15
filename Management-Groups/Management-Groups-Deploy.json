@@ -1,0 +1,54 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "parentGroup": {
+            "type": "string",
+            "metadata": {
+                "description": "name of parent Resource Group"
+            }
+        }
+    },
+    "resources": [
+        {
+            "name": "Parent",
+            "type": "Microsoft.Management/managementGroups",
+            "apiVersion": "2020-05-01",
+            "properties": {
+                "displayName": "[parameters('parentGroup')]",
+                "details": {}
+            },
+            "resources": []
+        },
+        {
+            "name": "Platform",
+            "dependsOn": [
+                "[resourceId('Microsoft.Management/managementGroups', 'Parent')]"
+            ],
+            "type": "Microsoft.Management/managementGroups",
+            "apiVersion": "2020-05-01",
+            "properties": {
+                "displayName": "[concat(parameters('parentGroup'), '-Platform')]",
+                "details": {
+                    "parent": "[concat('/providers/Microsoft.Management/managementGroups/',parameters('parentGroup'))]"
+                }
+            },
+            "resources": []
+        },
+        {
+            "name": "SharedServices",
+            "dependsOn": [
+                "[resourceId('Microsoft.Management/managementGroups', 'Platform')]"
+            ],
+            "type": "Microsoft.Management/managementGroups",
+            "apiVersion": "2020-05-01",
+            "properties": {
+                "displayName": "[concat(parameters('parentGroup'), '-SharedServices')]",
+                "details": {
+                    "parent": "[concat('/providers/Microsoft.Management/managementGroups/',parameters('parentGroup'),'-Platform')]"
+                }
+            },
+            "resources": []
+        }
+    ]
+}
